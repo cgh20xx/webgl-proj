@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon" />
+    <title>Document</title>
+    <style>
+      body {
+        background-color: #9f9;
+      }
+      canvas {
+        outline: 1px dashed red;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <script>
+      var canvas = document.getElementById('canvas');
+      var gl = canvas.getContext('webgl');
+      console.log('gl:', gl);
+      var ctxAttr = gl.getContextAttributes();
+      console.log('ctxAttr:', ctxAttr);
+
+      // 設定3D繪製環境
+      gl.clearColor(0.0, 0.0, 0.0, 1.0); // 設定清除色彩為黑色，完全不透明
+      gl.clearDepth(1.0); // 清除所有東西
+      gl.enable(gl.DEPTH_TEST); // Enable 深度測試
+      gl.depthFunc(gl.LEQUAL); // 使用 "<="，近物淺，遠物深
+      // 初始化畫布
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // 透過清除色來清除色彩緩衝區
+      // gl.viewport(0, 0, canvas.width, canvas.height); // 預設為此設定
+
+      // 撰寫 GPU 程式 (glsl)
+      var program = gl.createProgram();
+      console.log('program:', program);
+
+      // 1. 建立 Vertex shader 和 Fragment shader
+      var vs = gl.createShader(gl.VERTEX_SHADER);
+      var fs = gl.createShader(gl.FRAGMENT_SHADER);
+      console.log('create vs:', vs);
+      console.log('create fs:', fs);
+
+      // 2. 定義 Vertex shader 的原始程式
+      var vs_s = `
+        attribute vec3 p;
+        void main() { 
+          gl_Position = vec4(p, 1);
+        }
+      `;
+
+      // 3. 定義 Fragment shader 的原始程式
+      var fs_s = `
+        void main() {
+          gl_FragColor = vec4(1, 0, 0, 1);
+        }
+      `;
+
+      // 4. 把原始程式增加進 shader
+      gl.shaderSource(vs, vs_s);
+      gl.shaderSource(fs, fs_s);
+
+      // 5. 編譯 shader
+      gl.compileShader(vs);
+      gl.compileShader(fs);
+      console.log('compiled vs:', vs);
+      console.log('compiled fs:', fs);
+
+      // 6. 把 shader 增加到程式中
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+
+      // 7. 把 Vertex shader 和 Fragment shader 連結成一個完整的程式
+      gl.linkProgram(program);
+
+      // 8. 把 program 放入顯示記憶體中，告訢 WebGL 繪圖時使用我們的 program
+      gl.useProgram(program);
+
+      // 9. 定義一個頂點陣列，包含三個座標，實際上組成一個三角形(陣列裡每三個代表一個頂點的座標)
+      var vertices = [0, 0.5, 0, -0.5, -0.5, 0, 0.5, -0.5, 0];
+
+      // 10. 在顯示記憶體中建立一個緩衝區
+      var buf = gl.createBuffer();
+
+      // 11. 設定這個緩衝區為目前操作物件
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+
+      // 12. 把記憶體中的頂點陣列複製到目前操作得緩衝區中
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(vertices),
+        gl.STATIC_DRAW
+      );
+
+      // 13. 取得 Vertex shader 中變數 p 的位置序號
+      var p = gl.getAttribLocation(program, 'p');
+      console.log('p:', p);
+
+      // 14. 開啟 p 的陣列模式
+      gl.enableVertexAttribArray(p);
+
+      // 15. 把目前工作的緩衝區指定給 p 變數
+      gl.vertexAttribPointer(p, 3, gl.FLOAT, false, 0, 0);
+      /*
+        參數範列
+        gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexPosition,
+        numComponents,
+        type,
+        normalize,
+        stride,
+        offset);
+      */
+
+      // 16. 繪製
+      gl.drawArrays(gl.TRIANGLES, 0, 3); // drawArrays(shape, offset, vertexCount)
+    </script>
+  </body>
+</html>
